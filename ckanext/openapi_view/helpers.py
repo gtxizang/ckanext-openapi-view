@@ -19,3 +19,15 @@ def openapi_view_search_url(resource_id):
     """Return the REST-style search URL for a resource."""
     site_url = toolkit.config.get("ckan.site_url", "").rstrip("/")
     return f"{site_url}/api/3/action/resource_search/{resource_id}"
+
+
+def openapi_view_page_url(resource_id):
+    """Return the standalone Swagger UI page URL for a resource."""
+    site_url = toolkit.config.get("ckan.site_url", "").rstrip("/")
+    return f"{site_url}/openapi/resource/{resource_id}"
+
+
+def openapi_view_dataset_page_url(dataset_id):
+    """Return the standalone Swagger UI page URL for a dataset."""
+    site_url = toolkit.config.get("ckan.site_url", "").rstrip("/")
+    return f"{site_url}/openapi/dataset/{dataset_id}"

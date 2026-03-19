@@ -155,3 +155,129 @@ def resource_search(resource_id):
         return _json_response(result)
     except (toolkit.ObjectNotFound, toolkit.NotAuthorized):
         return _error_response("Not found or not authorized", 403)
+
+
+# --- Standalone Swagger UI pages ---
+
+
+def _swagger_ui_page(title, spec_url, ckan_url, back_url):
+    """Return a standalone Swagger UI HTML page."""
+    import html as html_mod
+    t = html_mod.escape(title)
+    s = html_mod.escape(spec_url)
+    c = html_mod.escape(ckan_url)
+    b = html_mod.escape(back_url)
+    page = f"""<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>{t} — API Documentation</title>
+<link rel="stylesheet" href="https://unpkg.com/swagger-ui-dist@5/swagger-ui.css">
+<style>
+*,*::before,*::after{{box-sizing:border-box}}
+body{{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;background:#fafafa}}
+.page-header{{background:linear-gradient(135deg,#16213e,#0f3460);color:#fff;padding:20px 32px}}
+.page-header h1{{margin:0 0 4px 0;font-size:22px;font-weight:600}}
+.page-header p{{margin:0;font-size:14px;opacity:.85}}
+.page-header a{{color:#93c5fd;text-decoration:none}}
+.page-header a:hover{{text-decoration:underline}}
+#swagger-ui{{max-width:1200px;margin:0 auto;padding:0 16px}}
+.swagger-ui .topbar{{display:none!important}}
+.swagger-ui .info{{margin:20px 0 10px 0}}
+.swagger-ui .info .title small{{display:none!important}}
+.swagger-ui .scheme-container{{display:none!important}}
+.swagger-ui .auth-wrapper{{display:none!important}}
+.swagger-ui section.models{{display:none!important}}
+.swagger-ui .copy-to-clipboard{{display:none!important}}
+.swagger-ui select{{-webkit-appearance:menulist!important;-moz-appearance:menulist!important;appearance:menulist!important;cursor:pointer!important}}
+.swagger-ui .info .renderedMarkdown table{{width:100%;border-collapse:collapse;font-size:13px;margin:12px 0}}
+.swagger-ui .info .renderedMarkdown table th{{background:#16213e;color:#fff;padding:8px 12px;text-align:left;font-weight:600;font-size:12px;text-transform:uppercase;letter-spacing:.5px}}
+.swagger-ui .info .renderedMarkdown table td{{padding:6px 12px;border-bottom:1px solid #e5e7eb;vertical-align:top}}
+.swagger-ui .info .renderedMarkdown table tr:hover td{{background:#f0f4ff}}
+.loading-message{{text-align:center;padding:60px 20px;color:#6366f1;font-size:16px}}
+.error-message{{text-align:center;padding:60px 20px;color:#dc2626;font-size:16px}}
+</style>
+</head>
+<body>
+<div class="page-header">
+  <h1>{t}</h1>
+  <p><a href="{c}">{c}</a> &middot; <a href="{b}">Back to dataset</a></p>
+</div>
+<div id="swagger-ui"><div class="loading-message">Loading API documentation&hellip;</div></div>
+<script src="https://unpkg.com/swagger-ui-dist@5/swagger-ui-bundle.js"></script>
+<script>
+(function(){{
+  fetch("{s}",{{credentials:"same-origin"}})
+    .then(function(r){{if(!r.ok)throw new Error("HTTP "+r.status);return r.json()}})
+    .then(function(d){{
+      var spec=d.result||d;
+      if(!spec.openapi)throw new Error("Invalid spec");
+      document.getElementById("swagger-ui").innerHTML="";
+      SwaggerUIBundle({{
+        spec:spec,
+        domNode:document.getElementById("swagger-ui"),
+        presets:[SwaggerUIBundle.presets.apis],
+        plugins:[SwaggerUIBundle.plugins.DownloadUrl],
+        layout:"BaseLayout",
+        tryItOutEnabled:true,
+        docExpansion:"list",
+        defaultModelsExpandDepth:0
+      }});
+    }})
+    .catch(function(e){{
+      document.getElementById("swagger-ui").innerHTML=
+        '<div class="error-message"><p>Failed to load API documentation.</p><p>'+e.message+'</p></div>';
+    }});
+}})();
+</script>
+</body>
+</html>"""
+    return Response(page, status=200, content_type="text/html; charset=utf-8")
+
+
+@openapi_view.route("/openapi/resource/<resource_id>", methods=["GET"])
+def resource_swagger_ui(resource_id):
+    """Standalone Swagger UI page for a single DataStore resource."""
+    if not _UUID_RE.match(resource_id):
+        return toolkit.abort(404)
+    try:
+        context = {
+            "user": toolkit.g.user,
+            "auth_user_obj": toolkit.g.userobj,
+        }
+        resource = toolkit.get_action("resource_show")(
+            dict(context), {"id": resource_id}
+        )
+        dataset = toolkit.get_action("package_show")(
+            dict(context), {"id": resource["package_id"]}
+        )
+        site_url = toolkit.config.get("ckan.site_url", "").rstrip("/")
+        spec_url = f"{site_url}/api/3/action/resource_openapi/{resource_id}"
+        back_url = f"{site_url}/dataset/{dataset['name']}"
+        title = f"{dataset.get('title', dataset['name'])} — {resource.get('name', resource_id)}"
+        return _swagger_ui_page(title, spec_url, site_url, back_url)
+    except (toolkit.ObjectNotFound, toolkit.NotAuthorized):
+        return toolkit.abort(404)
+
+
+@openapi_view.route("/openapi/dataset/<dataset_id>", methods=["GET"])
+def dataset_swagger_ui(dataset_id):
+    """Standalone Swagger UI page for all DataStore resources in a dataset."""
+    if not (_UUID_RE.match(dataset_id) or _DATASET_ID_RE.match(dataset_id)):
+        return toolkit.abort(404)
+    try:
+        context = {
+            "user": toolkit.g.user,
+            "auth_user_obj": toolkit.g.userobj,
+        }
+        dataset = toolkit.get_action("package_show")(
+            dict(context), {"id": dataset_id}
+        )
+        site_url = toolkit.config.get("ckan.site_url", "").rstrip("/")
+        spec_url = f"{site_url}/api/3/action/dataset_openapi/{dataset_id}"
+        back_url = f"{site_url}/dataset/{dataset['name']}"
+        title = dataset.get("title", dataset["name"])
+        return _swagger_ui_page(title, spec_url, site_url, back_url)
+    except (toolkit.ObjectNotFound, toolkit.NotAuthorized):
+        return toolkit.abort(404)

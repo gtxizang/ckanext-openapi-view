@@ -12,6 +12,8 @@ from .helpers import (
     openapi_view_spec_url,
     openapi_view_dataset_spec_url,
     openapi_view_search_url,
+    openapi_view_page_url,
+    openapi_view_dataset_page_url,
 )
 
 log = logging.getLogger(__name__)
@@ -28,7 +30,7 @@ class OpenApiViewPlugin(plugins.SingletonPlugin):
     # IConfigurer
 
     def update_config(self, config):
-        pass
+        toolkit.add_template_directory(config, "templates")
 
     # IActions
 
@@ -73,4 +75,6 @@ class OpenApiViewPlugin(plugins.SingletonPlugin):
             "openapi_view_spec_url": openapi_view_spec_url,
             "openapi_view_dataset_spec_url": openapi_view_dataset_spec_url,
             "openapi_view_search_url": openapi_view_search_url,
+            "openapi_view_page_url": openapi_view_page_url,
+            "openapi_view_dataset_page_url": openapi_view_dataset_page_url,
         }

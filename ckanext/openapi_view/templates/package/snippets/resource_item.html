@@ -1,0 +1,13 @@
+{% ckan_extends %}
+
+{% block resource_item_explore_links %}
+  {{ super() }}
+  {% if h.openapi_view_has_datastore(res.id) %}
+    <li>
+      <a class="dropdown-item" href="{{ h.openapi_view_swagger_ui_url(res.id) }}">
+        <i class="fa fa-bolt"></i>
+        {{ _('API Docs') }}
+      </a>
+    </li>
+  {% endif %}
+{% endblock %}

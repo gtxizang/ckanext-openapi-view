@@ -20,7 +20,7 @@ _UUID_RE = re.compile(
 
 # Maximum DataStore resources to introspect per dataset to prevent
 # amplification attacks (100+ queries per resource).
-MAX_RESOURCES_PER_DATASET = 20
+_DEFAULT_MAX_RESOURCES = 20
 
 
 def _validate_resource_id(resource_id):
@@ -51,7 +51,12 @@ def _get_introspect_config():
 
 
 def _get_site_url():
-    return toolkit.config.get("ckan.site_url", "").rstrip("/")
+    url = toolkit.config.get("ckan.site_url", "").rstrip("/")
+    if not url:
+        log.warning(
+            "ckan.site_url is not set — OpenAPI spec servers[] will be empty"
+        )
+    return url
 
 
 def _resource_spec(resource_id, context):
@@ -144,12 +149,16 @@ def dataset_openapi_show(context, data_dict):
         if res.get("datastore_active")
     ]
 
-    if len(ds_resources) > MAX_RESOURCES_PER_DATASET:
+    max_resources = int(toolkit.config.get(
+        "ckanext.openapi_view.max_resources_per_dataset",
+        _DEFAULT_MAX_RESOURCES,
+    ))
+    if len(ds_resources) > max_resources:
         log.info(
             "Dataset %s has %d DataStore resources, capping at %d",
-            dataset_id, len(ds_resources), MAX_RESOURCES_PER_DATASET,
+            dataset_id, len(ds_resources), max_resources,
         )
-        ds_resources = ds_resources[:MAX_RESOURCES_PER_DATASET]
+        ds_resources = ds_resources[:max_resources]
 
     resource_specs = []
     for res in ds_resources:

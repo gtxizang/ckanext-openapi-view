@@ -14,6 +14,9 @@ from .helpers import (
     openapi_view_search_url,
     openapi_view_page_url,
     openapi_view_dataset_page_url,
+    openapi_view_swagger_ui_url,
+    openapi_view_has_datastore,
+    openapi_view_dataset_has_datastore,
 )
 
 log = logging.getLogger(__name__)
@@ -77,4 +80,7 @@ class OpenApiViewPlugin(plugins.SingletonPlugin):
             "openapi_view_search_url": openapi_view_search_url,
             "openapi_view_page_url": openapi_view_page_url,
             "openapi_view_dataset_page_url": openapi_view_dataset_page_url,
+            "openapi_view_swagger_ui_url": openapi_view_swagger_ui_url,
+            "openapi_view_has_datastore": openapi_view_has_datastore,
+            "openapi_view_dataset_has_datastore": openapi_view_dataset_has_datastore,
         }

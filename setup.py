@@ -1,5 +1,5 @@
 from pathlib import Path
-from setuptools import setup, find_namespace_packages
+from setuptools import setup, find_packages
 
 HERE = Path(__file__).parent
 long_description = (HERE / "README.md").read_text(encoding="utf-8")
@@ -18,7 +18,7 @@ setup(
     url="https://github.com/gtxizang/ckanext-openapi-view",
     license="MIT",
     python_requires=">=3.8",
-    packages=find_namespace_packages(include=["ckanext.*"]),
+    packages=find_packages(include=["ckanext", "ckanext.*"]),
     include_package_data=True,
     zip_safe=False,
     install_requires=[

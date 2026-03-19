@@ -172,3 +172,44 @@ class TestBuildDatasetSpec:
         # Both resource search paths should be present
         assert "/api/3/action/resource_search/res-1" in combined["paths"]
         assert "/api/3/action/resource_search/res-2" in combined["paths"]
+
+    def test_schema_names_namespaced_per_resource(self, introspection_result):
+        """Two resources must produce distinct schema names, not overwrite."""
+        spec1 = build_resource_spec(
+            resource_id="aaaaaaaa-1111-2222-3333-444444444444",
+            site_url="https://data.example.com",
+            dataset_name="Test",
+            resource_name="Resource 1",
+            introspection=introspection_result,
+        )
+        spec2 = build_resource_spec(
+            resource_id="bbbbbbbb-1111-2222-3333-444444444444",
+            site_url="https://data.example.com",
+            dataset_name="Test",
+            resource_name="Resource 2",
+            introspection=introspection_result,
+        )
+
+        combined = build_dataset_spec(
+            dataset_id="test-dataset",
+            site_url="https://data.example.com",
+            dataset_name="Test Dataset",
+            resource_specs=[("Resource 1", spec1), ("Resource 2", spec2)],
+        )
+
+        schemas = combined["components"]["schemas"]
+        # Should have two distinct SearchResponse schemas
+        schema_names = list(schemas.keys())
+        assert len(schema_names) == 2
+        assert schema_names[0] != schema_names[1]
+        assert "SearchResponse_aaaaaaaa" in schemas
+        assert "SearchResponse_bbbbbbbb" in schemas
+
+        # $ref pointers in each path must point to the correct namespaced schema
+        path1 = combined["paths"]["/api/3/action/resource_search/aaaaaaaa-1111-2222-3333-444444444444"]
+        ref1 = path1["get"]["responses"]["200"]["content"]["application/json"]["schema"]["$ref"]
+        assert ref1 == "#/components/schemas/SearchResponse_aaaaaaaa"
+
+        path2 = combined["paths"]["/api/3/action/resource_search/bbbbbbbb-1111-2222-3333-444444444444"]
+        ref2 = path2["get"]["responses"]["200"]["content"]["application/json"]["schema"]["$ref"]
+        assert ref2 == "#/components/schemas/SearchResponse_bbbbbbbb"

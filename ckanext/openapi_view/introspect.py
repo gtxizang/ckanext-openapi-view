@@ -63,7 +63,7 @@ def deep_introspect(resource_id, context=None, config=None):
             dict(context), {"resource_id": resource_id, "limit": 0}
         )
     except Exception:
-        log.warning("Failed to fetch metadata for resource %s", resource_id)
+        log.warning("Failed to fetch metadata for resource %s", resource_id, exc_info=True)
         return None
 
     if not meta_result or "fields" not in meta_result:
@@ -133,7 +133,7 @@ def deep_introspect(resource_id, context=None, config=None):
                     "distinctCount": "50+" if len(values) >= 51 else len(values),
                 }
         except Exception:
-            log.debug("Enum query failed for field %s", f["id"])
+            log.debug("Enum query failed for field %s", f["id"], exc_info=True)
 
     # Range detection for numeric/timestamp fields
     range_data = {}
@@ -156,7 +156,7 @@ def deep_introspect(resource_id, context=None, config=None):
                     "max": rec.get("max_val"),
                 }
         except Exception:
-            log.debug("Range query failed for field %s", f["id"])
+            log.debug("Range query failed for field %s", f["id"], exc_info=True)
 
     # Build enriched fields (includes hidden fields in output for completeness)
     enriched_fields = []

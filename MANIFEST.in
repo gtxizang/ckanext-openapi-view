@@ -1,3 +1,4 @@
 include README.md
 include LICENSE
 recursive-include ckanext/openapi_view *.py
+recursive-include ckanext/openapi_view/templates *.html

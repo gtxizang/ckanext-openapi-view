@@ -84,7 +84,9 @@ def dataset_cache_key(dataset_id):
 def get_cached(key):
     """Get a value from cache. Returns NO_VALUE sentinel if not cached."""
     region = get_region()
-    return region.get(key)
+    value = region.get(key)
+    log.debug("Cache %s: %s", "hit" if value is not NO_VALUE else "miss", key)
+    return value
 
 
 def set_cached(key, value):

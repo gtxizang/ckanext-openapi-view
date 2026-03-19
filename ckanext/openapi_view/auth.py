@@ -42,5 +42,12 @@ def dataset_openapi_show(context, data_dict):
 
 
 def openapi_cache_invalidate(context, data_dict):
-    """Sysadmin only.  CKAN grants sysadmins automatic access."""
+    """Sysadmin only — returns ``{"success": False}`` by convention.
+
+    In CKAN's auth system, returning ``success: False`` denies access for
+    normal users.  However, CKAN automatically grants sysadmins access to
+    *all* actions before the auth function is even called, so sysadmins
+    bypass this denial entirely.  This is the standard CKAN pattern for
+    sysadmin-only actions.
+    """
     return {"success": False, "msg": "Only sysadmins may invalidate the cache"}

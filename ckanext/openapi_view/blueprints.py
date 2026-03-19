@@ -173,6 +173,7 @@ def _swagger_ui_page(title, spec_url, ckan_url, back_url):
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>{t} — API Documentation</title>
+<link rel="icon" href="/base/images/ckan.ico" type="image/x-icon">
 <link rel="stylesheet" href="https://unpkg.com/swagger-ui-dist@5/swagger-ui.css">
 <style>
 *,*::before,*::after{{box-sizing:border-box}}
@@ -190,7 +191,7 @@ body{{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sa
 .swagger-ui .auth-wrapper{{display:none!important}}
 .swagger-ui section.models{{display:none!important}}
 .swagger-ui .copy-to-clipboard{{display:none!important}}
-.swagger-ui select{{-webkit-appearance:menulist!important;-moz-appearance:menulist!important;appearance:menulist!important;cursor:pointer!important}}
+.swagger-ui select{{-webkit-appearance:menulist!important;-moz-appearance:menulist!important;appearance:menulist!important;background-image:none!important;cursor:pointer!important}}
 .swagger-ui .info .renderedMarkdown table{{width:100%;border-collapse:collapse;font-size:13px;margin:12px 0}}
 .swagger-ui .info .renderedMarkdown table th{{background:#16213e;color:#fff;padding:8px 12px;text-align:left;font-weight:600;font-size:12px;text-transform:uppercase;letter-spacing:.5px}}
 .swagger-ui .info .renderedMarkdown table td{{padding:6px 12px;border-bottom:1px solid #e5e7eb;vertical-align:top}}

@@ -1,0 +1,12 @@
+{% ckan_extends %}
+
+{% block resource_list %}
+  {{ super() }}
+  {% if resources and h.openapi_view_dataset_has_datastore(pkg.id) %}
+    <div class="openapi-dataset-link" style="margin-top: 10px; display: flex; justify-content: flex-end;">
+      <a class="btn btn-sm btn-primary" href="{{ h.openapi_view_dataset_page_url(pkg.name) }}">
+        <i class="fa fa-bolt"></i> {{ _('API Docs (all resources)') }}
+      </a>
+    </div>
+  {% endif %}
+{% endblock %}

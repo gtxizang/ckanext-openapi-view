@@ -264,6 +264,22 @@ def build_resource_spec(resource_id, site_url, dataset_name, resource_name,
     }
 
 
+def _rewrite_refs(obj, old_name, new_name):
+    """Recursively rewrite $ref pointers in a spec fragment."""
+    if isinstance(obj, dict):
+        for key, val in obj.items():
+            if key == "$ref" and isinstance(val, str):
+                obj[key] = val.replace(
+                    f"#/components/schemas/{old_name}",
+                    f"#/components/schemas/{new_name}",
+                )
+            else:
+                _rewrite_refs(val, old_name, new_name)
+    elif isinstance(obj, list):
+        for item in obj:
+            _rewrite_refs(item, old_name, new_name)
+
+
 def build_dataset_spec(dataset_id, site_url, dataset_name,
                        resource_specs):
     """Build a combined OpenAPI spec for all DataStore resources in a dataset.
@@ -283,10 +299,14 @@ def build_dataset_spec(dataset_id, site_url, dataset_name,
 
     for resource_name, spec in resource_specs:
         for path, path_item in spec.get("paths", {}).items():
+            # Extract resource_id suffix from path for schema namespacing
+            res_id_suffix = path.rsplit("/", 1)[-1][:8]
+            for schema_name, schema in spec.get("components", {}).get("schemas", {}).items():
+                namespaced = f"{schema_name}_{res_id_suffix}"
+                combined_schemas[namespaced] = schema
+                # Rewrite $ref pointers in this path's responses
+                _rewrite_refs(path_item, schema_name, namespaced)
             combined_paths[path] = path_item
-        for schema_name, schema in spec.get("components", {}).get("schemas", {}).items():
-            # Namespace schemas per resource to avoid collisions
-            combined_schemas[schema_name] = schema
         for tag in spec.get("tags", []):
             tags.add(tag["name"])
 

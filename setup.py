@@ -13,8 +13,6 @@ setup(
     ),
     long_description=long_description,
     long_description_content_type="text/markdown",
-    author="Derilinx",
-    author_email="info@derilinx.com",
     url="https://github.com/gtxizang/ckanext-openapi-view",
     license="MIT",
     python_requires=">=3.8",

@@ -1,6 +1,6 @@
 """Tests for the spec builder module."""
 
-from ckanext.openapi_view.spec_builder import build_resource_spec, build_dataset_spec
+from ckanext.openapi_view.spec_builder import build_resource_spec, build_dataset_spec, _truncate
 
 
 class TestBuildResourceSpec:
@@ -141,6 +141,110 @@ class TestBuildResourceSpec:
         )
         assert spec["openapi"] == "3.1.0"
         assert spec["paths"]
+
+    def test_integer_enum_values(self):
+        """Integer values in enumValues should be converted to strings by _truncate."""
+        introspection = {
+            "fields": [
+                {
+                    "id": "status_code",
+                    "type": "int4",
+                    "sample": 200,
+                    "samples": [200, 404, 500],
+                    "isEnum": True,
+                    "enumValues": [200, 404, 500],
+                    "distinctCount": 3,
+                },
+            ],
+            "totalRecords": 100,
+            "sampleRecords": [],
+        }
+        spec = build_resource_spec(
+            resource_id="test-res-id",
+            site_url="https://data.example.com",
+            dataset_name="Test",
+            resource_name="Test",
+            introspection=introspection,
+        )
+        records_schema = (
+            spec["components"]["schemas"]["SearchResponse"]
+            ["properties"]["result"]["properties"]["records"]
+        )
+        props = records_schema["items"]["properties"]
+        assert "status_code" in props
+        assert props["status_code"]["enum"] == ["200", "404", "500"]
+
+    def test_none_in_enum_values(self):
+        """None values in enumValues should not crash _truncate."""
+        introspection = {
+            "fields": [
+                {
+                    "id": "category",
+                    "type": "text",
+                    "sample": "A",
+                    "samples": ["A", "B"],
+                    "isEnum": True,
+                    "enumValues": ["A", None, "B"],
+                    "distinctCount": 3,
+                },
+            ],
+            "totalRecords": 50,
+            "sampleRecords": [],
+        }
+        spec = build_resource_spec(
+            resource_id="test-res-id",
+            site_url="https://data.example.com",
+            dataset_name="Test",
+            resource_name="Test",
+            introspection=introspection,
+        )
+        records_schema = (
+            spec["components"]["schemas"]["SearchResponse"]
+            ["properties"]["result"]["properties"]["records"]
+        )
+        props = records_schema["items"]["properties"]
+        assert "category" in props
+        # None becomes "" via _truncate
+        assert "" in props["category"]["enum"]
+
+    def test_all_fields_hidden(self):
+        """When all user fields are hidden, spec should still be valid."""
+        introspection = {
+            "fields": [
+                {"id": "_id", "type": "int4", "sample": 1, "samples": [1]},
+                {"id": "_full_text", "type": "tsvector", "sample": None, "samples": []},
+            ],
+            "totalRecords": 10,
+            "sampleRecords": [],
+        }
+        spec = build_resource_spec(
+            resource_id="test-res-id",
+            site_url="https://data.example.com",
+            dataset_name="Test",
+            resource_name="Test",
+            introspection=introspection,
+            hidden_fields=["_id", "_full_text"],
+        )
+        assert spec["openapi"] == "3.1.0"
+        records_schema = (
+            spec["components"]["schemas"]["SearchResponse"]
+            ["properties"]["result"]["properties"]["records"]
+        )
+        # items should be a plain object with no properties
+        assert records_schema["items"] == {"type": "object"}
+
+
+class TestTruncate:
+    def test_none_returns_empty(self):
+        assert _truncate(None) == ""
+
+    def test_integer_converted(self):
+        assert _truncate(42) == "42"
+
+    def test_long_string_truncated(self):
+        result = _truncate("x" * 300)
+        assert len(result) == 201  # 200 chars + ellipsis
+        assert result.endswith("\u2026")
 
 
 class TestBuildDatasetSpec:

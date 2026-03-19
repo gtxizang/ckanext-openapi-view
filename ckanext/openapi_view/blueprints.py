@@ -15,10 +15,13 @@ _UUID_RE = re.compile(
 _DATASET_ID_RE = re.compile(r"^[a-z0-9_-]{2,100}$")
 
 
+_HELP_URL = "https://docs.ckan.org/en/latest/api/"
+
+
 def _json_response(data, status=200):
     """Return a JSON response matching CKAN's envelope format."""
     body = {
-        "help": request.path,
+        "help": _HELP_URL,
         "success": True,
         "result": data,
     }
@@ -29,11 +32,18 @@ def _json_response(data, status=200):
     )
 
 
+_ERROR_TYPES = {
+    400: "Validation Error",
+    403: "Authorization Error",
+    404: "Not Found",
+}
+
+
 def _error_response(message, status=404):
     body = {
-        "help": request.path,
+        "help": _HELP_URL,
         "success": False,
-        "error": {"message": message, "__type": "Not Found"},
+        "error": {"message": message, "__type": _ERROR_TYPES.get(status, "Not Found")},
     }
     return Response(
         json.dumps(body),
@@ -160,11 +170,27 @@ def resource_search(resource_id):
 # --- Standalone Swagger UI pages ---
 
 
+_SWAGGER_UI_VERSION = "5.18.2"
+_SWAGGER_CSS_SRI = "sha384-rcbEi6xgdPk0iWkAQzT2F3FeBJXdG+ydrawGlfHAFIZG7wU6aKbQaRewysYpmrlW"
+_SWAGGER_JS_SRI = "sha384-NXtFPpN61oWCuN4D42K6Zd5Rt2+uxeIT36R7kpXBuY9tLnZorzrJ4ykpqwJfgjpZ"
+_SWAGGER_CDN = f"https://unpkg.com/swagger-ui-dist@{_SWAGGER_UI_VERSION}"
+
+_CSP = (
+    "default-src 'none'; "
+    "script-src 'unsafe-inline' unpkg.com; "
+    "style-src 'unsafe-inline' unpkg.com; "
+    "img-src 'self' data:; "
+    "font-src unpkg.com; "
+    "connect-src 'self'"
+)
+
+
 def _swagger_ui_page(title, spec_url, ckan_url, back_url):
     """Return a standalone Swagger UI HTML page."""
     import html as html_mod
     t = html_mod.escape(title)
-    s = html_mod.escape(spec_url)
+    # json.dumps for JS context — produces a safely quoted JS string literal
+    s_js = json.dumps(spec_url)
     c = html_mod.escape(ckan_url)
     b = html_mod.escape(back_url)
     page = f"""<!DOCTYPE html>
@@ -174,7 +200,7 @@ def _swagger_ui_page(title, spec_url, ckan_url, back_url):
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>{t} — API Documentation</title>
 <link rel="icon" href="/base/images/ckan.ico" type="image/x-icon">
-<link rel="stylesheet" href="https://unpkg.com/swagger-ui-dist@5/swagger-ui.css">
+<link rel="stylesheet" href="{_SWAGGER_CDN}/swagger-ui.css" integrity="{_SWAGGER_CSS_SRI}" crossorigin="anonymous">
 <style>
 *,*::before,*::after{{box-sizing:border-box}}
 body{{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;background:#fafafa}}
@@ -206,10 +232,10 @@ body{{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sa
   <p><a href="{c}">{c}</a> &middot; <a href="{b}">Back to dataset</a></p>
 </div>
 <div id="swagger-ui"><div class="loading-message">Loading API documentation&hellip;</div></div>
-<script src="https://unpkg.com/swagger-ui-dist@5/swagger-ui-bundle.js"></script>
+<script src="{_SWAGGER_CDN}/swagger-ui-bundle.js" integrity="{_SWAGGER_JS_SRI}" crossorigin="anonymous"></script>
 <script>
 (function(){{
-  fetch("{s}",{{credentials:"same-origin"}})
+  fetch({s_js},{{credentials:"same-origin"}})
     .then(function(r){{if(!r.ok)throw new Error("HTTP "+r.status);return r.json()}})
     .then(function(d){{
       var spec=d.result||d;
@@ -227,14 +253,28 @@ body{{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sa
       }});
     }})
     .catch(function(e){{
-      document.getElementById("swagger-ui").innerHTML=
-        '<div class="error-message"><p>Failed to load API documentation.</p><p>'+e.message+'</p></div>';
+      var c=document.getElementById("swagger-ui");
+      c.innerHTML="";
+      var d=document.createElement("div");
+      d.className="error-message";
+      var p1=document.createElement("p");
+      p1.textContent="Failed to load API documentation.";
+      var p2=document.createElement("p");
+      p2.textContent=e.message;
+      d.appendChild(p1);
+      d.appendChild(p2);
+      c.appendChild(d);
     }});
 }})();
 </script>
 </body>
 </html>"""
-    return Response(page, status=200, content_type="text/html; charset=utf-8")
+    return Response(
+        page,
+        status=200,
+        content_type="text/html; charset=utf-8",
+        headers={"Content-Security-Policy": _CSP},
+    )
 
 
 @openapi_view.route("/openapi/resource/<resource_id>", methods=["GET"])

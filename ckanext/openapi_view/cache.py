@@ -25,7 +25,11 @@ def _json_serializer(value):
 
 def _json_deserializer(raw):
     """Deserialize JSON bytes from cache."""
-    return json.loads(raw)
+    try:
+        return json.loads(raw)
+    except (json.JSONDecodeError, TypeError, UnicodeDecodeError):
+        log.warning("Cache deserializer failed on corrupted data, treating as miss")
+        return NO_VALUE
 
 
 def _get_config(key, default=None):

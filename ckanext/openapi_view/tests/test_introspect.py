@@ -121,3 +121,102 @@ class TestDeepIntrospect:
         # But the unsafe field should NOT have enum data
         unsafe_field = next(f for f in result["fields"] if f["id"] == "DROP TABLE;--")
         assert "enumValues" not in unsafe_field
+
+    @patch("ckanext.openapi_view.introspect.toolkit")
+    def test_unicode_field_name_safe_quoting(self, mock_toolkit):
+        """Unicode field names should be excluded by SAFE_FIELD_RE (no SQL issued)."""
+        meta_result = {
+            "fields": [
+                {"id": "名前", "type": "text"},
+                {"id": "safe_col", "type": "text"},
+            ],
+            "total": 5,
+        }
+
+        sql_calls = []
+
+        def mock_action(action_name):
+            def action_fn(context, data_dict):
+                if action_name == "datastore_search":
+                    if data_dict.get("limit") == 0:
+                        return meta_result
+                    return {"records": []}
+                elif action_name == "datastore_search_sql":
+                    sql_calls.append(data_dict.get("sql", ""))
+                    return {"records": [{"safe_col": "val"}]}
+                return {}
+            return action_fn
+
+        mock_toolkit.get_action.side_effect = mock_action
+
+        result = deep_introspect("test-resource-id")
+        assert result is not None
+        # Unicode field still appears in output
+        field_ids = [f["id"] for f in result["fields"]]
+        assert "名前" in field_ids
+        # But no SQL query should reference it
+        for sql in sql_calls:
+            assert "名前" not in sql
+
+    @patch("ckanext.openapi_view.introspect.toolkit")
+    def test_empty_field_name_skipped(self, mock_toolkit):
+        """Empty string field names should be excluded by SAFE_FIELD_RE."""
+        meta_result = {
+            "fields": [
+                {"id": "", "type": "text"},
+                {"id": "valid", "type": "text"},
+            ],
+            "total": 5,
+        }
+
+        def mock_action(action_name):
+            def action_fn(context, data_dict):
+                if action_name == "datastore_search":
+                    if data_dict.get("limit") == 0:
+                        return meta_result
+                    return {"records": []}
+                elif action_name == "datastore_search_sql":
+                    return {"records": [{"valid": "x"}]}
+                return {}
+            return action_fn
+
+        mock_toolkit.get_action.side_effect = mock_action
+
+        result = deep_introspect("test-resource-id")
+        assert result is not None
+
+    @patch("ckanext.openapi_view.introspect.toolkit")
+    def test_long_field_name_filtered(self, mock_toolkit):
+        """Field names >100 chars should be excluded from SQL queries."""
+        long_name = "a" * 150
+        meta_result = {
+            "fields": [
+                {"id": long_name, "type": "text"},
+                {"id": "short", "type": "text"},
+            ],
+            "total": 5,
+        }
+
+        sql_calls = []
+
+        def mock_action(action_name):
+            def action_fn(context, data_dict):
+                if action_name == "datastore_search":
+                    if data_dict.get("limit") == 0:
+                        return meta_result
+                    return {"records": []}
+                elif action_name == "datastore_search_sql":
+                    sql_calls.append(data_dict.get("sql", ""))
+                    return {"records": [{"short": "x"}]}
+                return {}
+            return action_fn
+
+        mock_toolkit.get_action.side_effect = mock_action
+
+        result = deep_introspect("test-resource-id")
+        assert result is not None
+        # Long field name should still be in output but no SQL for it
+        field_ids = [f["id"] for f in result["fields"]]
+        assert long_name in field_ids
+        for sql in sql_calls:
+            assert long_name not in sql

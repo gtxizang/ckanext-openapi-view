@@ -83,6 +83,9 @@ ckanext.openapi_view.enum_threshold = 25
 # Max fields to introspect per resource. Default: 50
 ckanext.openapi_view.max_fields = 50
 
+# Max resources to include in a dataset combined spec. Default: 20
+ckanext.openapi_view.max_resources_per_dataset = 20
+
 # Inject DCAT DataService into access_services. Default: true
 ckanext.openapi_view.dcat_enabled = true
 ```

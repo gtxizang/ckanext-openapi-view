@@ -175,14 +175,18 @@ _SWAGGER_CSS_SRI = "sha384-rcbEi6xgdPk0iWkAQzT2F3FeBJXdG+ydrawGlfHAFIZG7wU6aKbQa
 _SWAGGER_JS_SRI = "sha384-NXtFPpN61oWCuN4D42K6Zd5Rt2+uxeIT36R7kpXBuY9tLnZorzrJ4ykpqwJfgjpZ"
 _SWAGGER_CDN = f"https://unpkg.com/swagger-ui-dist@{_SWAGGER_UI_VERSION}"
 
-_CSP = (
-    "default-src 'none'; "
-    "script-src 'unsafe-inline' unpkg.com; "
-    "style-src 'unsafe-inline' unpkg.com; "
-    "img-src 'self' data:; "
-    "font-src unpkg.com; "
-    "connect-src 'self'"
-)
+def _build_csp(site_url):
+    """Build CSP header, allowing connect-src to the configured site URL."""
+    from urllib.parse import urlparse
+    origin = f"{urlparse(site_url).scheme}://{urlparse(site_url).netloc}"
+    return (
+        "default-src 'none'; "
+        "script-src 'unsafe-inline' unpkg.com; "
+        "style-src 'unsafe-inline' unpkg.com; "
+        "img-src 'self' data:; "
+        "font-src unpkg.com; "
+        f"connect-src 'self' {origin}"
+    )
 
 
 def _swagger_ui_page(title, spec_url, ckan_url, back_url):
@@ -273,7 +277,7 @@ body{{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sa
         page,
         status=200,
         content_type="text/html; charset=utf-8",
-        headers={"Content-Security-Policy": _CSP},
+        headers={"Content-Security-Policy": _build_csp(ckan_url)},
     )
 
 

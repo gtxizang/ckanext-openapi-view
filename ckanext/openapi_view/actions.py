@@ -1,7 +1,6 @@
 """CKAN action functions for OpenAPI spec generation."""
 
 import logging
-import re
 
 import ckan.plugins.toolkit as toolkit
 from ckan.logic import side_effect_free
@@ -11,12 +10,9 @@ from dogpile.cache.api import NO_VALUE
 from . import cache
 from .introspect import deep_introspect
 from .spec_builder import build_resource_spec, build_dataset_spec
+from .utils import UUID_RE
 
 log = logging.getLogger(__name__)
-
-_UUID_RE = re.compile(
-    r"^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$"
-)
 
 # Maximum DataStore resources to introspect per dataset to prevent
 # amplification attacks (100+ queries per resource).
@@ -25,7 +21,7 @@ _DEFAULT_MAX_RESOURCES = 20
 
 def _validate_resource_id(resource_id):
     """Validate resource_id format to prevent cache key injection."""
-    if not _UUID_RE.match(resource_id):
+    if not UUID_RE.match(resource_id):
         raise toolkit.ValidationError(
             {"resource_id": ["Must be a valid UUID"]}
         )

@@ -8,9 +8,9 @@ import html
 import re
 
 from .type_map import pg_to_jsonschema
+from .utils import truncate as _truncate, MAX_VALUE_LEN
 
 MAX_FIELD_NAME_LEN = 100
-MAX_VALUE_LEN = 200
 
 
 def _escape_markdown(s):
@@ -27,13 +27,6 @@ def _escape_markdown(s):
         s = s.replace(char, repl)
     s = s.replace("\n", " ").replace("\r", "")
     return s
-
-
-def _truncate(s, max_len=MAX_VALUE_LEN):
-    if s is None:
-        return ""
-    s = str(s)
-    return s[:max_len] + "\u2026" if len(s) > max_len else s
 
 
 def build_resource_spec(resource_id, site_url, dataset_name, resource_name,

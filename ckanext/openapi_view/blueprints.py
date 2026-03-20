@@ -1,18 +1,14 @@
 """Flask blueprint providing REST-style routes for OpenAPI specs and resource search."""
 
 import json
-import re
 
 from flask import Blueprint, Response, request
 
 import ckan.plugins.toolkit as toolkit
 
-openapi_view = Blueprint("openapi_view", __name__)
+from .utils import UUID_RE, DATASET_ID_RE
 
-_UUID_RE = re.compile(
-    r"^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$"
-)
-_DATASET_ID_RE = re.compile(r"^[a-z0-9_-]{2,100}$")
+openapi_view = Blueprint("openapi_view", __name__)
 
 
 _HELP_URL = "https://docs.ckan.org/en/latest/api/"
@@ -57,7 +53,7 @@ def _error_response(message, status=404):
 )
 def resource_openapi(resource_id):
     """Serve the OpenAPI spec for a single DataStore resource."""
-    if not _UUID_RE.match(resource_id):
+    if not UUID_RE.match(resource_id):
         return _error_response("Invalid resource ID format", 400)
     try:
         context = {
@@ -78,7 +74,7 @@ def resource_openapi(resource_id):
 )
 def dataset_openapi(dataset_id):
     """Serve the combined OpenAPI spec for all DataStore resources in a dataset."""
-    if not (_UUID_RE.match(dataset_id) or _DATASET_ID_RE.match(dataset_id)):
+    if not (UUID_RE.match(dataset_id) or DATASET_ID_RE.match(dataset_id)):
         return _error_response("Invalid dataset ID format", 400)
     try:
         context = {
@@ -103,7 +99,7 @@ def resource_search(resource_id):
     q, filters, limit, offset, fields, sort, etc.
     Also supports filter_<field>=<value> convenience params.
     """
-    if not _UUID_RE.match(resource_id):
+    if not UUID_RE.match(resource_id):
         return _error_response("Invalid resource ID format", 400)
     try:
         context = {
@@ -284,7 +280,7 @@ body{{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sa
 @openapi_view.route("/openapi/resource/<resource_id>", methods=["GET"])
 def resource_swagger_ui(resource_id):
     """Standalone Swagger UI page for a single DataStore resource."""
-    if not _UUID_RE.match(resource_id):
+    if not UUID_RE.match(resource_id):
         return toolkit.abort(404)
     try:
         context = {
@@ -309,7 +305,7 @@ def resource_swagger_ui(resource_id):
 @openapi_view.route("/openapi/dataset/<dataset_id>", methods=["GET"])
 def dataset_swagger_ui(dataset_id):
     """Standalone Swagger UI page for all DataStore resources in a dataset."""
-    if not (_UUID_RE.match(dataset_id) or _DATASET_ID_RE.match(dataset_id)):
+    if not (UUID_RE.match(dataset_id) or DATASET_ID_RE.match(dataset_id)):
         return toolkit.abort(404)
     try:
         context = {

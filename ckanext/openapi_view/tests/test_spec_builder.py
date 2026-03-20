@@ -1,6 +1,7 @@
 """Tests for the spec builder module."""
 
-from ckanext.openapi_view.spec_builder import build_resource_spec, build_dataset_spec, _truncate
+from ckanext.openapi_view.spec_builder import build_resource_spec, build_dataset_spec
+from ckanext.openapi_view.utils import truncate as _truncate
 
 
 class TestBuildResourceSpec:

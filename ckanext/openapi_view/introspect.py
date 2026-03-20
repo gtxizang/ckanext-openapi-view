@@ -10,25 +10,18 @@ import re
 import ckan.plugins.toolkit as toolkit
 
 from .type_map import TEXT_TYPES, RANGE_TYPES
+from .utils import truncate as _truncate
 
 log = logging.getLogger(__name__)
 
 SAFE_FIELD_RE = re.compile(r"^[a-zA-Z0-9_\- .,]+$")
 MAX_FIELD_NAME_LEN = 100
-MAX_VALUE_LEN = 200
 
 
 def _safe_sql_identifier(name):
     """Double-quote a SQL identifier, escaping internal quotes."""
     s = str(name).replace("\x00", "")
     return '"' + s.replace('"', '""') + '"'
-
-
-def _truncate(value, max_len=MAX_VALUE_LEN):
-    if value is None:
-        return ""
-    s = str(value)
-    return s[:max_len] + "\u2026" if len(s) > max_len else s
 
 
 def deep_introspect(resource_id, context=None, config=None):

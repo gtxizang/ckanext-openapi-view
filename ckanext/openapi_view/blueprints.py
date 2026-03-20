@@ -159,6 +159,9 @@ def resource_search(resource_id):
 
         result = toolkit.get_action("datastore_search")(context, data_dict)
         return _json_response(result)
+    except toolkit.ValidationError as e:
+        msg = str(e.error_dict) if hasattr(e, 'error_dict') else str(e)
+        return _error_response(msg, 400)
     except (toolkit.ObjectNotFound, toolkit.NotAuthorized):
         return _error_response("Not found or not authorized", 403)
 

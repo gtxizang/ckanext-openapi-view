@@ -4,6 +4,7 @@ Python port of buildOpenApiSpec() from swagger-explorer.js (lines 223-432),
 enhanced with typed response schemas using PostgreSQL → JSON Schema mapping.
 """
 
+import copy
 import html
 
 from .type_map import pg_to_jsonschema
@@ -290,6 +291,7 @@ def build_dataset_spec(dataset_id, site_url, dataset_name,
     tags = set()
 
     for resource_name, spec in resource_specs:
+        spec = copy.deepcopy(spec)  # Don't mutate caller's (possibly cached) dicts
         for path, path_item in spec.get("paths", {}).items():
             # Extract resource_id suffix from path for schema namespacing
             res_id_suffix = path.rsplit("/", 1)[-1][:8]

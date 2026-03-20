@@ -1,5 +1,7 @@
 """Tests for the spec builder module."""
 
+import copy
+
 from ckanext.openapi_view.spec_builder import build_resource_spec, build_dataset_spec
 from ckanext.openapi_view.utils import truncate as _truncate
 
@@ -318,3 +320,35 @@ class TestBuildDatasetSpec:
         path2 = combined["paths"]["/api/3/action/resource_search/bbbbbbbb-1111-2222-3333-444444444444"]
         ref2 = path2["get"]["responses"]["200"]["content"]["application/json"]["schema"]["$ref"]
         assert ref2 == "#/components/schemas/SearchResponse_bbbbbbbb"
+
+
+class TestBuildDatasetSpecMutation:
+    def test_input_specs_not_mutated(self, introspection_result):
+        """build_dataset_spec must not mutate the input resource specs."""
+        spec1 = build_resource_spec(
+            resource_id="aaaaaaaa-1111-2222-3333-444444444444",
+            site_url="https://data.example.com",
+            dataset_name="Test",
+            resource_name="Resource 1",
+            introspection=introspection_result,
+        )
+        path_key = "/api/3/action/resource_search/aaaaaaaa-1111-2222-3333-444444444444"
+        original_ref = copy.deepcopy(
+            spec1["paths"][path_key]["get"]["responses"]["200"]
+            ["content"]["application/json"]["schema"]["$ref"]
+        )
+
+        build_dataset_spec(
+            dataset_id="test-dataset",
+            site_url="https://data.example.com",
+            dataset_name="Test Dataset",
+            resource_specs=[("Resource 1", spec1)],
+        )
+
+        current_ref = (
+            spec1["paths"][path_key]["get"]["responses"]["200"]
+            ["content"]["application/json"]["schema"]["$ref"]
+        )
+        assert current_ref == original_ref, (
+            f"Input spec was mutated: {original_ref!r} -> {current_ref!r}"
+        )

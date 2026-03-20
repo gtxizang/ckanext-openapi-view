@@ -20,6 +20,7 @@ setup(
     include_package_data=True,
     zip_safe=False,
     install_requires=[
+        "ckan>=2.10",
         "dogpile.cache>=1.0",
     ],
     classifiers=[

@@ -58,7 +58,7 @@ pip install -e .
 ckan.plugins = ... openapi_view ...
 ```
 
-Requires `dogpile.cache` (installed automatically via setup.py). Redis is optional but recommended for production.
+Requires CKAN 2.10+ and `dogpile.cache` (installed automatically via setup.py). Redis is optional but recommended for production.
 
 ## Configuration
 

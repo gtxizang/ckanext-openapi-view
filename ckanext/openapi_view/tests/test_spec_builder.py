@@ -321,6 +321,40 @@ class TestBuildDatasetSpec:
         ref2 = path2["get"]["responses"]["200"]["content"]["application/json"]["schema"]["$ref"]
         assert ref2 == "#/components/schemas/SearchResponse_bbbbbbbb"
 
+    def test_operation_ids_unique_per_resource(self, introspection_result):
+        """OpenAPI requires operationId to be unique across all operations."""
+        spec1 = build_resource_spec(
+            resource_id="aaaaaaaa-1111-2222-3333-444444444444",
+            site_url="https://data.example.com",
+            dataset_name="Test",
+            resource_name="Resource 1",
+            introspection=introspection_result,
+        )
+        spec2 = build_resource_spec(
+            resource_id="bbbbbbbb-1111-2222-3333-444444444444",
+            site_url="https://data.example.com",
+            dataset_name="Test",
+            resource_name="Resource 2",
+            introspection=introspection_result,
+        )
+
+        combined = build_dataset_spec(
+            dataset_id="test-dataset",
+            site_url="https://data.example.com",
+            dataset_name="Test Dataset",
+            resource_specs=[("Resource 1", spec1), ("Resource 2", spec2)],
+        )
+
+        op_ids = []
+        for path_item in combined["paths"].values():
+            for method_obj in path_item.values():
+                if isinstance(method_obj, dict) and "operationId" in method_obj:
+                    op_ids.append(method_obj["operationId"])
+
+        assert len(op_ids) == len(set(op_ids)), (
+            f"Duplicate operationIds found: {op_ids}"
+        )
+
 
 class TestBuildDatasetSpecMutation:
     def test_input_specs_not_mutated(self, introspection_result):

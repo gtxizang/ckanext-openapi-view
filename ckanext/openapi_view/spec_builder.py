@@ -300,6 +300,10 @@ def build_dataset_spec(dataset_id, site_url, dataset_name,
                 combined_schemas[namespaced] = schema
                 # Rewrite $ref pointers in this path's responses
                 _rewrite_refs(path_item, schema_name, namespaced)
+            # Make operationId unique per resource (OpenAPI 3.1 requirement)
+            for method_obj in path_item.values():
+                if isinstance(method_obj, dict) and "operationId" in method_obj:
+                    method_obj["operationId"] = f"{method_obj['operationId']}_{res_id_suffix}"
             combined_paths[path] = path_item
         for tag in spec.get("tags", []):
             tags.add(tag["name"])

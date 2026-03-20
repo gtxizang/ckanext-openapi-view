@@ -4,12 +4,11 @@ Server-side OpenAPI 3.1.0 spec generation for CKAN DataStore resources.
 
 ## Background
 
-This is the backend companion to [ckanext-swagger-view](https://github.com/gtxizang/ckanext-swagger-view). Eric reviewed swagger-view and said the introspection (enum detection, type mapping, range analysis) should happen server-side in Python, not client-side in JavaScript. This extension does exactly that.
+Every DataStore resource is already a queryable API — but there's no documentation for it. This extension fixes that by automatically generating OpenAPI 3.1.0 specs from live DataStore metadata: column types become JSON Schema types, low-cardinality text fields become enums, numeric fields get min/max ranges, and the data dictionary is embedded in the spec.
 
-**ckanext-swagger-view** = the Swagger UI modal on resource pages (frontend)
-**ckanext-openapi-view** = server-side OpenAPI spec generation, caching, DCAT integration (backend)
+The extension is fully standalone — it generates specs, serves its own Swagger UI pages, and adds "API Docs" navigation buttons to dataset and resource pages. No other extensions are required.
 
-When both are installed, swagger-view fetches a pre-built spec in one HTTP request instead of running 30+ SQL queries client-side. If openapi-view is not installed, swagger-view falls back to its original client-side introspection -- so the two extensions are independent and neither requires the other.
+If [ckanext-swagger-view](https://github.com/gtxizang/ckanext-swagger-view) is also installed, it will automatically consume the pre-built specs (one HTTP request, ~100ms) instead of running its own client-side introspection (30+ requests, 2-5 seconds). The two extensions are independent and neither requires the other.
 
 ## What you get
 
@@ -100,32 +99,6 @@ These are available via the standard CKAN action API (`/api/action/...`) as well
 | `dataset_openapi_show` | Same as `package_show` | Returns combined spec (only includes resources the user can access) |
 | `openapi_cache_invalidate` | Sysadmin only | Manually invalidate cached specs |
 
-## How swagger-view uses this
-
-When both extensions are installed, swagger-view's JS detects the spec URL and fetches it:
-
-```
-Button click
-  -> fetch /api/3/action/resource_openapi/<id>
-  -> pass spec to SwaggerUIBundle
-  -> done (one request, ~100ms)
-```
-
-Without openapi-view, it falls back to the original flow:
-
-```
-Button click
-  -> datastore_search (metadata)
-  -> datastore_search (samples)
-  -> SELECT DISTINCT per text field (enum detection)
-  -> SELECT MIN/MAX per numeric field (range analysis)
-  -> build spec client-side
-  -> pass to SwaggerUIBundle
-  -> done (30+ requests, 2-5 seconds)
-```
-
-The fallback is automatic and seamless. No configuration needed.
-
 ## DCAT 3 DataService
 
 When `dcat_enabled = true`, each DataStore resource's `access_services` gets:
@@ -139,7 +112,7 @@ When `dcat_enabled = true`, each DataStore resource's `access_services` gets:
 }
 ```
 
-ckanext-dcat picks this up and serializes it as `dcat:DataService` in RDF/DCAT output. The `endpoint_url` gives each resource a proper REST endpoint, and `endpoint_description` points to its OpenAPI spec. This is what Eric was asking for.
+ckanext-dcat picks this up and serializes it as `dcat:DataService` in RDF/DCAT output. The `endpoint_url` gives each resource a proper REST endpoint, and `endpoint_description` points to its OpenAPI spec.
 
 ## Project structure
 

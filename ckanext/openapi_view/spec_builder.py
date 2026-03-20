@@ -5,7 +5,6 @@ enhanced with typed response schemas using PostgreSQL → JSON Schema mapping.
 """
 
 import html
-import re
 
 from .type_map import pg_to_jsonschema
 from .utils import truncate as _truncate, MAX_VALUE_LEN

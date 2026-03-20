@@ -28,6 +28,7 @@ class OpenApiViewPlugin(plugins.SingletonPlugin):
     plugins.implements(plugins.IAuthFunctions)
     plugins.implements(plugins.IBlueprint)
     plugins.implements(plugins.IPackageController, inherit=True)
+    plugins.implements(plugins.IResourceController, inherit=True)
     plugins.implements(plugins.ITemplateHelpers)
 
     # IConfigurer
@@ -67,9 +68,16 @@ class OpenApiViewPlugin(plugins.SingletonPlugin):
         """Invalidate cached specs when a dataset is updated."""
         dataset_id = pkg_dict.get("id")
         if dataset_id:
-            cache.invalidate_dataset(dataset_id)
             for res in pkg_dict.get("resources", []):
                 cache.invalidate_resource(res["id"])
+
+    # IResourceController
+
+    def before_resource_delete(self, context, resource, resources):
+        """Invalidate cached spec before a resource is deleted."""
+        res_id = resource.get("id") if isinstance(resource, dict) else None
+        if res_id:
+            cache.invalidate_resource(str(res_id))
 
     # ITemplateHelpers
 

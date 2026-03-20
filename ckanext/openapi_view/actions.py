@@ -208,7 +208,16 @@ def openapi_cache_invalidate(context, data_dict):
         cache.invalidate_resource(resource_id)
         invalidated.append(f"resource:{resource_id}")
     if dataset_id:
-        cache.invalidate_dataset(dataset_id)
+        try:
+            dataset = toolkit.get_action("package_show")(
+                {"ignore_auth": True}, {"id": dataset_id}
+            )
+            for res in dataset.get("resources", []):
+                _validate_resource_id(res["id"])
+                cache.invalidate_resource(res["id"])
+                invalidated.append(f"resource:{res['id']}")
+        except Exception:
+            log.warning("Failed to invalidate dataset %s resources", dataset_id, exc_info=True)
         invalidated.append(f"dataset:{dataset_id}")
 
     return {"invalidated": invalidated}

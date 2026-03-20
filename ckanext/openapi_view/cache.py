@@ -81,9 +81,6 @@ def resource_cache_key(resource_id):
     return f"openapi:resource:{resource_id}"
 
 
-def dataset_cache_key(dataset_id):
-    return f"openapi:dataset:{dataset_id}"
-
 
 def get_cached(key):
     """Get a value from cache. Returns NO_VALUE sentinel if not cached."""
@@ -110,6 +107,3 @@ def invalidate_resource(resource_id):
     invalidate(resource_cache_key(resource_id))
 
 
-def invalidate_dataset(dataset_id):
-    """Invalidate the cached spec for a dataset."""
-    invalidate(dataset_cache_key(dataset_id))
